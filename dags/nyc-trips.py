@@ -2,12 +2,15 @@ import os
 from datetime import datetime
 
 from airflow.decorators import dag, task
+from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.lambda_function import LambdaHook
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.operators.lambda_function import \
     AwsLambdaInvokeFunctionOperator
 
-LAMBDA_FUNCTION_NAME:str = os.getenv("nyc_lambda")
+from utils.checks import check_s3_bucket_exists
+
+LAMBDA_FUNCTION_NAME:str = os.getenv("NYC_LAMBDA")
+BUCKET_NAME:str = os.getenv("NYC_BUCKET_NAME")
 
 @dag(
     dag_id="NYC-Trips",
@@ -17,10 +20,18 @@ LAMBDA_FUNCTION_NAME:str = os.getenv("nyc_lambda")
     catchup=False
 )
 def dag():
-    @task
-    def check_lambda_functions_exists(function_name:str) -> None:
-        lambda_hook = LambdaHook()
-        lambda_conn = lambda_hook.get_conn()
+
+    # @task
+    # def check_lambda_functions_exists(function_name:str = "nyc_lambda_function") -> None:
+    #     lambda_hook = LambdaHook()
+    #     lambda_conn = lambda_hook.get_conn()
+
+    check_s3_bucket_exists = PythonOperator(
+        python_callable=check_s3_bucket_exists,
+        op_kwargs={
+            "bucket_name": BUCKET_NAME
+        }
+    )
 
     # download_to_s3 = AwsLambdaInvokeFunctionOperator(
     #     function_name=,
@@ -29,6 +40,8 @@ def dag():
     # check_lambda_exists    \
     #                           Downloaad data to S3
     # check_s3_buclet_exists /
-    check_lambda_functions_exists()
+    # check_lambda_functions_exists
+
+    check_s3_bucket_exists
 
 dag()
