@@ -29,5 +29,6 @@ def dag():
     # check_lambda_exists    \
     #                           Downloaad data to S3
     # check_s3_buclet_exists /
+    check_lambda_functions_exists()
 
 dag()
