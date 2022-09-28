@@ -7,7 +7,7 @@ from airflow.providers.amazon.aws.hooks.lambda_function import LambdaHook
 from airflow.providers.amazon.aws.operators.lambda_function import \
     AwsLambdaInvokeFunctionOperator
 
-from utils.checks import check_s3_bucket_exists
+from utils import checks
 
 LAMBDA_FUNCTION_NAME:str = os.getenv("NYC_LAMBDA")
 BUCKET_NAME:str = os.getenv("NYC_BUCKET_NAME")
@@ -27,7 +27,8 @@ def dag():
     #     lambda_conn = lambda_hook.get_conn()
 
     check_s3_bucket_exists = PythonOperator(
-        python_callable=check_s3_bucket_exists,
+        task_id="check_s3_bucket_exists",
+        python_callable=checks.check_s3_bucket_exists,
         op_kwargs={
             "bucket_name": BUCKET_NAME
         }
