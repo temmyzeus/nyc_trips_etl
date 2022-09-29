@@ -21,3 +21,13 @@ variable "aws_credentials_path" {
   default     = ["$HOME/.aws/credentials"]
   description = "AWS Credentials Path"
 }
+
+variable "bucket_prefix" {
+  type        = string
+  description = "Name of bucket to be appended to Account ID"
+}
+
+variable "function_name" {
+  type        = string
+  description = "Name of Lambda Function"
+}
