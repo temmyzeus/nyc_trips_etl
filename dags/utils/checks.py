@@ -1,7 +1,12 @@
+from airflow.providers.amazon.aws.hooks.lambda_function import LambdaHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 class BucketNotFoundError(Exception):
     """Exeption class for Bucket not found"""
+    pass
+
+class LambdaFunctionNotFound(Exception):
+    """Exception to check if lambda function with specified name exists"""
     pass
 
 def check_s3_bucket_exists(bucket_name:str) -> None:
@@ -14,4 +19,9 @@ def check_s3_bucket_exists(bucket_name:str) -> None:
         raise BucketNotFoundError("Bucket name: %s not found" % bucket_name)
 
 def check_lambda_exists(function_name:str) -> None:
-    pass
+    lambda_hook = LambdaHook("aws_conn")
+    session = lambda_hook.get_session()
+    lambda_ = session.client("lambda")
+    does_lambda_func_exist = lambda_.get_function(FunctionName=function_name)
+    if not does_lambda_func_exist:
+        raise LambdaFunctionNotFound("Lambda function with name %s not found in account provided" % function_name)
