@@ -11,7 +11,7 @@ from airflow.providers.amazon.aws.operators.lambda_function import \
 from utils import checks
 
 LAMBDA_FUNCTION_NAME:str = os.getenv("NYC_LAMBDA")
-BUCKET_NAME:str = os.getenv("NYC_BUCKET_NAME")
+BUCKET_NAME:str = os.getenv("S3_BUCKET_NAME")
 
 @dag(
     dag_id="NYC-Trips",
