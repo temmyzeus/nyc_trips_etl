@@ -38,7 +38,7 @@ def dag():
     check_lambda_exists = PythonOperator(
         task_id="check_lambda_exists",
         python_callable=checks.check_lambda_exists,
-        op_kwargs={"function_name": None}
+        op_kwargs={"function_name": LAMBDA_FUNCTION_NAME}
     )
 
     fetch_data_to_s3_with_lambda = DummyOperator(
