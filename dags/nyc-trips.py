@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 from airflow.decorators import dag, task
+from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.lambda_function import LambdaHook
 from airflow.providers.amazon.aws.operators.lambda_function import \
@@ -34,6 +35,16 @@ def dag():
         }
     )
 
+    check_lambda_exists = PythonOperator(
+        task_id="check_lambda_exists",
+        python_callable=checks.check_lambda_exists,
+        op_kwargs={"function_name": None}
+    )
+
+    fetch_data_to_s3_with_lambda = DummyOperator(
+        task_id="fetch_data_to_s3_with_lambda"
+    )
+
     # download_to_s3 = AwsLambdaInvokeFunctionOperator(
     #     function_name=,
     # )
@@ -43,6 +54,6 @@ def dag():
     # check_s3_buclet_exists /
     # check_lambda_functions_exists
 
-    check_s3_bucket_exists
+    [check_s3_bucket_exists, check_lambda_exists] >> fetch_data_to_s3_with_lambda
 
 dag()
