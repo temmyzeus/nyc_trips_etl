@@ -27,7 +27,7 @@ resource "aws_lambda_function" "nyc_lambda_function" {
   function_name = var.function_name
   role          = aws_iam_role.lambda_role.arn
   runtime       = "python3.9"
-  filename      = "${path.module}/../files/output.zip"
+  filename      = data.archive_file.zip_python_code.output_path
   handler       = "index.lambda_handler"
 }
 
