@@ -30,3 +30,8 @@ resource "aws_lambda_function" "nyc_lambda_function" {
   filename      = "${path.module}/../files/output.zip"
   handler       = "index.lambda_handler"
 }
+
+resource "aws_iam_role_policy_attachment" "lambda_cloudwatch_attach_policy" {
+  role       = aws_iam_role.lambda_role.id
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
