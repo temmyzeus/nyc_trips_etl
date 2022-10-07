@@ -16,7 +16,7 @@ BUCKET_NAME:str = os.getenv("S3_BUCKET_NAME")
 @dag(
     dag_id="NYC-Trips",
     description="Ingesting trips data from NYC City Website",
-    start_date=datetime(2022, 1, 1),
+    start_date=datetime(2009, 1, 1),
     schedule_interval="@monthly",
     catchup=False
 )
