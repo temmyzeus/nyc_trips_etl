@@ -4,6 +4,7 @@ from datetime import datetime, date
 from typing import Union
 
 from airflow.decorators import dag, task
+from airflow.models.xcom import XCom
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.lambda_function import LambdaHook
 from airflow.providers.amazon.aws.operators.lambda_function import \
@@ -101,9 +102,7 @@ def dag():
         task_id="fetch_data_to_s3_with_lambda",
         function_name=LAMBDA_FUNCTION_NAME,
         aws_conn_id="aws_conn",
-        payload=json.dumps({
-            "msg": "hello world"
-        })
+        payload=XCom.get_one(task_id="create_download_links")
     )
 
     [check_s3_bucket_exists, check_lambda_exists] >> create_download_links >> fetch_data_to_s3_with_lambda
