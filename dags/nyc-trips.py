@@ -7,15 +7,17 @@ from airflow.decorators import dag, task
 from airflow.models.xcom import XCom
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.lambda_function import LambdaHook
-from airflow.providers.amazon.aws.operators.lambda_function import \
-    AwsLambdaInvokeFunctionOperator
+from airflow.providers.amazon.aws.operators.lambda_function import (
+    AwsLambdaInvokeFunctionOperator,
+)
 
 from utils import checks
 
-LAMBDA_FUNCTION_NAME:str = os.getenv("NYC_LAMBDA")
-BUCKET_NAME:str = os.getenv("S3_BUCKET_NAME")
+LAMBDA_FUNCTION_NAME: str = os.getenv("NYC_LAMBDA")
+BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME")
 
 date_month_type = Union[int, str]
+
 
 def create_download_url(ti, year: date_month_type, month: date_month_type) -> None:
     """
@@ -33,40 +35,49 @@ def create_download_url(ti, year: date_month_type, month: date_month_type) -> No
     if isinstance(month, str):
         month = int(month)
 
-    run_interval_date:date = date(year, month, 1)
+    run_interval_date: date = date(year, month, 1)
 
     ti.xcom_push(
-        key="yellow_trips_url", 
-        value="https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{}-{:02d}.parquet".format(year, month)
-        )
+        key="yellow_trips_url",
+        value="https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{}-{:02d}.parquet".format(
+            year, month
+        ),
+    )
 
     if run_interval_date > date(2013, 8, 1):
         ti.xcom_push(
             key="green_trips_url",
-            value="https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_{}-{:02d}.parquet".format(year, month)
+            value="https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_{}-{:02d}.parquet".format(
+                year, month
+            ),
         )
         print("Green Trips now Available")
 
     if run_interval_date > date(2015, 1, 1):
         ti.xcom_push(
             key="fhv_trips_url",
-            value="https://d37ci6vzurychx.cloudfront.net/trip-data/fhv_tripdata_{}-{:02d}.parquet".format(year, month)
+            value="https://d37ci6vzurychx.cloudfront.net/trip-data/fhv_tripdata_{}-{:02d}.parquet".format(
+                year, month
+            ),
         )
         print("For-Hire Vehicle now available")
 
     if run_interval_date > date(2019, 2, 1):
         ti.xcom_push(
             key="high_volume_fhv_url",
-            value="https://d37ci6vzurychx.cloudfront.net/trip-data/fhv_tripdata_{}-{:02d}.parquet".format(year, month)
+            value="https://d37ci6vzurychx.cloudfront.net/trip-data/fhv_tripdata_{}-{:02d}.parquet".format(
+                year, month
+            ),
         )
         print("High Volume For-Hire Vehicle Trip available")
+
 
 @dag(
     dag_id="NYC-Trips",
     description="Ingesting trips data from NYC City Website",
     start_date=datetime(2009, 1, 1),
     schedule_interval="@monthly",
-    catchup=False
+    catchup=False,
 )
 def dag():
 
@@ -78,15 +89,13 @@ def dag():
     check_s3_bucket_exists = PythonOperator(
         task_id="check_s3_bucket_exists",
         python_callable=checks.check_s3_bucket_exists,
-        op_kwargs={
-            "bucket_name": BUCKET_NAME
-        }
+        op_kwargs={"bucket_name": BUCKET_NAME},
     )
 
     check_lambda_exists = PythonOperator(
         task_id="check_lambda_exists",
         python_callable=checks.check_lambda_exists,
-        op_kwargs={"function_name": LAMBDA_FUNCTION_NAME}
+        op_kwargs={"function_name": LAMBDA_FUNCTION_NAME},
     )
 
     create_download_links = PythonOperator(
@@ -95,16 +104,28 @@ def dag():
         op_kwargs={
             "year": "{{ dag_run.logical_date.year }}",
             "month": "{{ dag_run.logical_date.month }}",
-        }
+        },
     )
 
     fetch_data_to_s3_with_lambda = AwsLambdaInvokeFunctionOperator(
         task_id="fetch_data_to_s3_with_lambda",
         function_name=LAMBDA_FUNCTION_NAME,
         aws_conn_id="aws_conn",
-        payload=XCom.get_one(task_id="create_download_links")
+        payload=json.dumps(
+            {
+                "yellow_trips_url": "{{ ti.xcom_pull(task_ids='create_download_links', key='yellow_trips_url') }}",
+                "green_trips_url": "{{ ti.xcom_pull(task_ids='create_download_links', key='green_trips_url') }}",
+                "fhv_trips_url": "{{ ti.xcom_pull(task_ids='create_download_links', key='fhv_trips_url') }}",
+                "high_volume_fhv_url": "{{ ti.xcom_pull(task_ids='create_download_links', key='high_volume_fhv_url') }}",
+            }
+        ),
     )
 
-    [check_s3_bucket_exists, check_lambda_exists] >> create_download_links >> fetch_data_to_s3_with_lambda
+    (
+        [check_s3_bucket_exists, check_lambda_exists]
+        >> create_download_links
+        >> fetch_data_to_s3_with_lambda
+    )
+
 
 dag()
